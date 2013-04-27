@@ -1,0 +1,104 @@
+#!/usr/bin/perl
+
+# Modo de uso:
+# $ls
+# song.mp3
+# U And I.ogg
+#
+# $edit_tracks
+# 01-U and I.ogg
+# 02-song.mp3
+
+# Y ademas aplica los tags del numero del tema, nombre de la cancion y album a los archivos mp3 y ogg
+
+$cero = '0';                                         # caracter cero para agregar a los nombres
+$contador = 01;                                      # contador de pista en la carpeta
+
+$currDir = `pwd`;                                    # dicectorio actual (nombre del disco)
+chomp $currDir;
+$_ = $currDir;
+s/.*\///g;
+$disco = $_;
+
+opendir(DIR, ".");
+@array = sort(grep(/.*\.(mp3|ogg|wav|flac)/i,readdir(DIR)));                   # @array = sort(grep(/pl$/, readdir(DIR)));
+closedir(DIR);
+
+# La idea es que para cada archivo fabrico el comando 'mv' necesario para renombrarlo.
+# Al final cada comando quedaria de la forma 'mv "Lavando Pis.mp3" "09-Lavando pis.mp3"' donde el primer parametro de mv
+# es el nombre original del archivo, y el segundo parametro es el nuevo nombre que comienza con su numero de indice en la
+# carpeta, y el nombre del archivo esta todo en minusculas salvo el primer caracter (y las 'I' de pronombre personal).
+#
+# Al final tambien le seteo los tags de etiquetado de las canciones segun los datos obtenidos.
+
+foreach (@array) {                                   # para todas pistas de audio...
+
+      # id3v2 -l 01-Discord.mp3 | grep "Title  :" > pista;    # hago este comando
+      # /Title\s\s:(w+).*/;                                   # con esta expresion obtengo el nombre del archivo
+      # $pista = $1;
+      # $pista = lc($pista);                                  # paso todo a minusculas
+      # $pista = ucfirst($pista);                             # paso la primer letra a mayusculas
+      # luego tengo que pasar a mayusculas las 'I' especiales
+
+      s/\n//;                                        # saco el "fin de linea" de la linea actual
+      $comando = "mv \"$_\"";                        # agrego el comando 'mv', y entre comillas el nombre del archivo
+      $file    = "";                                 # $file se va a usar como 'eco' del nombre del archivo para usarlo al final
+
+      $comando = "$comando \"";                      # agrego la comilla de apertura
+      if ($contador < 10) {                          # si el contador es menor que 10
+         $comando = "$comando$cero";                 # entonces agrego un cero
+         $file    = "$file$cero";
+      } # if
+
+      $comando = "$comando$contador-";               # agrego el contador y un guion
+      $file    = "$file$contador-";
+
+      s/\d*[-,.,_,),\s]*//;                          # quito los primeros numeros seguidos de los separadores - _ ) y espacio
+      s/_/ /g;                                       # reemplazo todos los _ por espacio
+      $_ = lc($_);                                   # paso toda la tira a minusculas
+      $_ = ucfirst($_);                              # paso a mayusculas la primer letra
+
+      if ( /.*\si\s.*/ ){                            # si hay una 'i' aislada
+         s/\si\s/ I /;                               # la paso a mayusculas
+      }
+      if ( /.*\sii\s.*/ ){                           # si hay dos 'i' aisladas
+         s/\sii\s/ II /;                             # las paso a mayusculas
+      }
+      if ( /.*\siii\s.*/ ){                          # si hay tres 'i' aisladas
+         s/\siii\s/ III /;                           # las paso a mayusculas
+      }
+      if ( /.*\si'/ ){                               # si hay una 'i' aislada seguida de un apostrofe
+         s/\si'/ I'/;                                # la paso a mayusculas
+      }
+
+      if ( /.*\si\./ ){                              # si hay una 'i' al final del nombre
+         s/\si\./ I\./;                              # la paso a mayusculas
+      }
+      if ( /.*\sii\./ ){                             # si hay una 'i' al final del nombre
+         s/\sii\./ II\./;                            # la paso a mayusculas
+      }
+      if ( /.*\siii./ ){                             # si hay una 'i' al final del nombre
+         s/\siii\./ III\./;                          # la paso a mayusculas
+      }
+
+      $comando = "$comando$_\"";                     # agrego el nombre final del archivo al comando a ejecutar
+      $file    = "$file$_";
+
+      if (-e $file) {
+         print "Ya existe el archivo con nombre $file\n";
+      }else{
+         print `$comando`;                           # ejecuto el comando 'mv "First Song.mp3" "09-First song.mp3"'
+      }
+
+      s/\.(mp3|ogg|wav|flac)//i;                     # le quito la extension a $_ para quedarme con el nombre del track
+
+      # le aplico las etiquetas de titulo, numero de tema y album
+      if ( $1 eq "mp3" ){
+         print `id3v2  -t \"$_\" -T \"$contador\" -A \"$disco\" \"$file\"`;
+      }elsif ( $1 eq "ogg" ){
+         print `vorbiscomment -a -t \"title=$_\" -t \"tracknumber=$contador\" -t \"album=$disco\" \"$file\"`;
+      }
+
+      $contador++;
+
+} # foreach
