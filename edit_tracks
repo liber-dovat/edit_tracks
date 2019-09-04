@@ -25,7 +25,7 @@ opendir(DIR, ".");
 closedir(DIR);
 
 # La idea es que para cada archivo fabrico el comando 'mv' necesario para renombrarlo.
-# Al final cada comando quedaria de la forma 'mv "Lavando Pis.mp3" "09-Lavando pis.mp3"' donde el primer parametro de mv
+# Al final cada comando quedaria de la forma 'mv "U And I.mp3" "01-U and I.mp3"' donde el primer parametro de mv
 # es el nombre original del archivo, y el segundo parametro es el nuevo nombre que comienza con su numero de indice en la
 # carpeta, y el nombre del archivo esta todo en minusculas salvo el primer caracter (y las 'I' de pronombre personal).
 #
